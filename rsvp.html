@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>تأكيد الحضور</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script defer src="config.js"></script>
+  <script>
+    function qp(name){ const u = new URL(location.href); return u.searchParams.get(name) || ""; }
+    async function sendRSVP(answer){
+      const msg = document.getElementById('msg');
+      const email = document.getElementById('email').value.trim() || qp('email');
+      const date  = qp('date') || new Date(Date.now()+86400000).toISOString().slice(0,10);
+
+      // 1) خزّن الرد كتاج داخل OneSignal (من غير باك إند)
+      try {
+        await window.OneSignal.User.addTag("att_" + date, answer);
+      } catch(e){ /* ignore */ }
+
+      // 2) لو فيه Endpoint، ابعته كمان لـ Google Sheet
+      const endpoint = (window.APP_CONFIG && window.APP_CONFIG.RSVP_ENDPOINT) || "";
+      if(endpoint){
+        try{
+          const body = new URLSearchParams({ email, answer, date });
+          const res = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() });
+          if(!res.ok) throw new Error();
+          msg.textContent = "تم تسجيل ردّك 👌";
+          return;
+        }catch(e){
+          msg.textContent = "تم حفظ ردّك داخليًا. تعذّر الإرسال للشيت.";
+          return;
+        }
+      }
+      msg.textContent = "تم تسجيل ردّك 👌";
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const q = document.getElementById('q');
+      if(window.APP_CONFIG){ q.textContent = window.APP_CONFIG.NOTIFY_TEXT || ""; }
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal){
+        await OneSignal.init({ appId: window.APP_CONFIG.ONE_SIGNAL_APP_ID });
+        // Auto-send if answer موجود في اللينك
+        const ans = qp('answer');
+        if(ans){ setTimeout(()=>sendRSVP(ans), 80); }
+      });
+    });
+  </script>
+</head>
+<body>
+  <main class="container">
+    <h1>تأكيد الحضور لبكرة</h1>
+    <section class="card">
+      <p id="q" class="hint"></p>
+      <label>الإيميل (اختياري لحفظه في الشيت)</label>
+      <input id="email" type="email" placeholder="you@company.com" autocomplete="email" value="">
+      <div class="row">
+        <button class="primary" onclick="sendRSVP('yes')">نعم سأحضر</button>
+        <button class="ghost"  onclick="sendRSVP('remote')">سأعمل من الخارج</button>
+        <button class="danger" onclick="sendRSVP('no')">لا لن أحضر</button>
+      </div>
+      <p id="msg" class="status"></p>
+    </section>
+  </main>
+</body>
+</html>
