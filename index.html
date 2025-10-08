@@ -16,7 +16,7 @@
   <script>
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async function(OneSignal) {
-      // Get App ID from config.js
+      // Get App ID from config.j/Attendance/
       const APP_ID = (window.APP_CONFIG && window.APP_CONFIG.ONE_SIGNAL_APP_ID) || "";
       // Initialize OneSignal with custom Service Worker paths.
       await OneSignal.init({
@@ -24,8 +24,8 @@
         serviceWorker: {
           path: 'OneSignalSDKWorker.js',
           updaterPath: 'OneSignalSDKUpdaterWorker.js',
-          scope: '/'
-        }
+          scope: /Attendance/
+        
       });
       const $ = s => document.querySelector(s);
       const status = $("#status");
